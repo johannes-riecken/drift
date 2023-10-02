@@ -1,7 +1,7 @@
 module Rules.Standard(rules) where
 
 import RuleUtils
-import Data.List
+import Data.List hiding (singleton)
 import GenUtil
 import Prelude hiding ((<>))
 

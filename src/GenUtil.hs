@@ -235,11 +235,11 @@ replicateM_ n x = sequence_ $ replicate n x
 
 {-# SPECIALIZE maybeToMonad :: Maybe a -> IO a #-}
 -- | convert a maybe to an arbitrary failable monad
-maybeToMonad :: Monad m => Maybe a -> m a
+maybeToMonad :: (Monad m, MonadFail m) => Maybe a -> m a
 maybeToMonad (Just x) = return x
 maybeToMonad Nothing = fail "Nothing"
 
-toMonadM :: Monad m => m (Maybe a) -> m a
+toMonadM :: (Monad m, MonadFail m) => m (Maybe a) -> m a
 toMonadM action = join $ liftM maybeToMonad action
 
 foldlM :: Monad m => (a -> b -> m a) -> a -> [b] -> m a
@@ -289,7 +289,7 @@ rights xs = [x | Right x <- xs]
 lefts :: [Either a b] -> [a]
 lefts xs = [x | Left x <- xs]
 
-ioM :: Monad m => IO a -> IO (m a)
+ioM :: (Monad m, MonadFail m) => IO a -> IO (m a)
 ioM action = iocatch (fmap return action) (\e -> return (fail (show e)))
 
 ioMp :: MonadPlus m => IO a -> IO (m a)
@@ -471,7 +471,7 @@ readHexChar a | a >= '0' && a <= '9' = return $ ord a - ord '0'
 readHexChar a | z >= 'a' && z <= 'f' = return $ 10 + ord z - ord 'a' where z = toLower a
 readHexChar x = fail $ "not hex char: " ++ [x]
 
-readHex :: Monad m => String -> m Int
+readHex :: (Monad m, MonadFail m) => String -> m Int
 readHex [] = fail "empty string"
 readHex cs = mapM readHexChar cs >>= \cs' -> return (rh $ reverse cs') where
     rh (c:cs) =  c + 16 * (rh cs)
@@ -508,13 +508,13 @@ getArgContents = do
     if null as then getContents else return $ concat cs
 
 
-readM :: (Monad m, Read a) => String -> m a
+readM :: (Monad m, Read a, MonadFail m) => String -> m a
 readM cs = case [x | (x,t) <-  reads cs, ("","") <- lex t] of
     [x] -> return x
     [] -> fail "readM: no parse"
     _ -> fail "readM: ambiguous parse"
 
-readsM :: (Monad m, Read a) => String -> m (a,String)
+readsM :: (Monad m, Read a, MonadFail m) => String -> m (a,String)
 readsM cs = case readsPrec 0 cs of
     [(x,s)] -> return (x,s)
     _ -> fail "cannot readsM"
